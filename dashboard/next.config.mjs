@@ -10,10 +10,12 @@ const nextConfig = {
     unoptimized: true,
     domains: ['jgtarpigzpcadrsdmfhm.supabase.co'],
   },
-  // Optimize for Railway deployment
-  output: 'standalone',
   reactStrictMode: true,
   swcMinify: true,
+  // Optimized for Vercel deployment
+  experimental: {
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+  },
 }
 
 export default nextConfig

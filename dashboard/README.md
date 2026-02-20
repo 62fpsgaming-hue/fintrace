@@ -164,21 +164,49 @@ python test_api.py
 
 ## Deployment
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions.
+### 🚀 Quick Deploy to Vercel (Recommended)
 
-### Quick Deploy
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/62fpsgaming-hue/fintrace-frontend&root-directory=dashboard)
+
+**Or follow these steps:**
+
+1. **Push to GitHub**
+   ```bash
+   git add .
+   git commit -m "Deploy to Vercel"
+   git push origin main
+   ```
+
+2. **Import to Vercel**
+   - Go to [vercel.com/new](https://vercel.com/new)
+   - Import your repository
+   - Set root directory to `dashboard`
+   - Add environment variables
+   - Click Deploy
+
+3. **Configure Environment Variables**
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   NEXT_PUBLIC_API_URL=your_backend_url
+   ```
+
+**See detailed guides:**
+- 📖 [Quick Start Guide](./DEPLOYMENT_QUICK_START.md)
+- 📖 [Full Vercel Guide](./VERCEL_DEPLOYMENT.md)
+
+### Alternative Deployment Options
 
 1. **Database**: Deploy to Supabase (free tier available)
 2. **Backend**: Deploy to Railway/Render/Fly.io
-3. **Frontend**: Deploy to Vercel
+3. **Frontend**: Deploy to Vercel/Netlify/Cloudflare Pages
 
 ```bash
 # Deploy frontend to Vercel
 vercel
 
-# Deploy backend to Railway
-cd backend
-railway up
+# Or use the deployment script
+./deploy-vercel.sh
 ```
 
 ## API Documentation
