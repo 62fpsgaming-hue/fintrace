@@ -4,6 +4,7 @@ Financial Forensics Engine – FastAPI application entry point
 
 from __future__ import annotations
 
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -24,9 +25,10 @@ app = FastAPI(
 )
 
 # ── CORS (allow the existing frontend dashboard to connect) ───────────────────
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],        # tighten in production
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

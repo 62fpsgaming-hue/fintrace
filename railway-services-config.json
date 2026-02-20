@@ -1,0 +1,54 @@
+{
+  "services": [
+    {
+      "name": "backend",
+      "description": "FastAPI backend service for fraud detection",
+      "rootDirectory": "backend",
+      "builder": "DOCKERFILE",
+      "dockerfilePath": "Dockerfile",
+      "healthcheck": {
+        "path": "/health",
+        "timeout": 100
+      },
+      "deploy": {
+        "startCommand": "uvicorn main:app --host 0.0.0.0 --port $PORT",
+        "restartPolicyType": "ON_FAILURE",
+        "restartPolicyMaxRetries": 10
+      },
+      "environmentVariables": {
+        "PORT": "Auto-assigned by Railway",
+        "PYTHON_VERSION": "3.11"
+      }
+    },
+    {
+      "name": "dashboard",
+      "description": "Next.js frontend dashboard",
+      "rootDirectory": "dashboard",
+      "builder": "NIXPACKS",
+      "healthcheck": {
+        "path": "/",
+        "timeout": 100
+      },
+      "deploy": {
+        "startCommand": "pnpm start",
+        "restartPolicyType": "ON_FAILURE",
+        "restartPolicyMaxRetries": 10
+      },
+      "environmentVariables": {
+        "NEXT_PUBLIC_API_URL": "Set to backend service URL after backend deploys",
+        "NEXT_PUBLIC_SUPABASE_URL": "Your Supabase project URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY": "Your Supabase anonymous key"
+      },
+      "dependencies": [
+        "backend (must deploy first to get URL)"
+      ]
+    }
+  ],
+  "notes": [
+    "Deploy backend service first",
+    "Copy backend URL after it deploys",
+    "Set NEXT_PUBLIC_API_URL in frontend service to backend URL",
+    "Both services must have Root Directory set correctly",
+    "Services deploy independently when their directories change"
+  ]
+}

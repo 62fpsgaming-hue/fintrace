@@ -7,32 +7,53 @@
 ---
 
 ## Table of Contents
-1. [Architecture](#architecture)
-2. [API Reference](#api-reference)
-3. [Algorithm Explanation](#algorithm-explanation)
-4. [Complexity Analysis](#complexity-analysis)
-5. [Setup & Run](#setup--run)
-6. [Docker](#docker)
-7. [Example CSV & Response](#example-csv--response)
+1. [Features](#features)
+2. [Architecture](#architecture)
+3. [API Reference](#api-reference)
+4. [Algorithm Explanation](#algorithm-explanation)
+5. [Complexity Analysis](#complexity-analysis)
+6. [Setup & Run](#setup--run)
+7. [Docker & Deployment](#docker--deployment)
+8. [Example CSV & Response](#example-csv--response)
+
+---
+
+## Features
+
+- Multi-format file support: CSV, TSV, Excel (.xlsx, .xls)
+- Flexible column name mapping with aliases
+- Three core detection algorithms: cycle detection, smurfing, layered shell networks
+- Weighted suspicion scoring with false-positive reduction
+- CSV export functionality for analysis results
+- Interactive API documentation (Swagger UI)
+- Health check endpoints for monitoring
+- CORS support for frontend integration
 
 ---
 
 ## Architecture
 
 ```
-backend/
+.
 ├── main.py                  # FastAPI app factory + CORS + router mount
-├── requirements.txt
-├── Dockerfile
+├── requirements.txt         # Python dependencies
+├── Dockerfile              # Container build configuration
+├── Procfile                # Deployment process configuration
+├── railway.toml            # Railway deployment settings
+├── nixpacks.toml           # Nixpacks build configuration
+├── runtime.txt             # Python version specification
+├── .env.example            # Environment variables template
+├── test_transactions.csv   # Sample test data
+├── validate_output.py      # Output validation script
 └── app/
     ├── api/
-    │   └── routes.py        # POST /analyze endpoint
+    │   └── routes.py        # POST /analyze, GET /health, POST /export/csv
     ├── core/
     │   └── config.py        # All tunable constants & thresholds
     ├── models/
     │   └── schemas.py       # Pydantic v2 response schemas
     └── services/
-        ├── csv_parser.py    # Upload validation & DataFrame conversion
+        ├── csv_parser.py    # Multi-format file parser (CSV/TSV/Excel)
         ├── graph_builder.py # NetworkX DiGraph construction
         ├── pattern_detector.py  # Cycle / Smurfing / Shell detection
         ├── scoring_engine.py    # Weighted suspicion scoring + FP reduction
@@ -42,10 +63,12 @@ backend/
 Data flow for a single request:
 
 ```
-CSV Upload
+File Upload (CSV/TSV/Excel)
    │
    ▼
 csv_parser.parse_csv()          ← validates columns, types, timestamps
+   │                              supports CSV, TSV, XLSX, XLS formats
+   │                              flexible column name mapping
    │ DataFrame
    ▼
 graph_builder.build_graph()     ← DiGraph: nodes=accounts, edges=transactions
@@ -70,13 +93,39 @@ json_formatter.build_response() ← Pydantic validation → JSON
 
 ### `POST /analyze`
 
-| Property       | Value                              |
-|----------------|------------------------------------|
-| URL            | `http://localhost:8000/analyze`    |
-| Method         | `POST`                             |
-| Content-Type   | `multipart/form-data`              |
-| Field name     | `file`                             |
-| Accepted types | `.csv`, `text/csv`, `text/plain`   |
+Analyzes financial transactions for money muling patterns.
+
+| Property       | Value                                           |
+|----------------|-------------------------------------------------|
+| URL            | `http://localhost:8000/analyze`                 |
+| Method         | `POST`                                          |
+| Content-Type   | `multipart/form-data`                           |
+| Field name     | `file`                                          |
+| Accepted types | `.csv`, `.tsv`, `.xlsx`, `.xls`                 |
+
+#### Supported File Formats
+- CSV (Comma-Separated Values)
+- TSV (Tab-Separated Values)
+- Excel (.xlsx, .xls)
+
+#### Required Columns
+The file must contain these columns (or their aliases):
+- `transaction_id` (aliases: txn_id, tx_id, id, transaction_number)
+- `sender_id` (aliases: from_account, source_id, sender, from_id, payer_id)
+- `receiver_id` (aliases: to_account, destination_id, receiver, to_id, payee_id)
+- `amount` (aliases: value, transaction_amount, sum)
+- `timestamp` (aliases: date, datetime, transaction_date, time, created_at)
+
+#### Supported Timestamp Formats
+- `YYYY-MM-DD HH:MM:SS`
+- `YYYY-MM-DD HH:MM:SS.ffffff`
+- `YYYY/MM/DD HH:MM:SS`
+- `DD-MM-YYYY HH:MM:SS`
+- `DD/MM/YYYY HH:MM:SS`
+- `YYYY-MM-DD`
+- `DD-MM-YYYY`
+- `DD/MM/YYYY`
+- `MM/DD/YYYY`
 
 #### Request (curl)
 ```bash
@@ -100,7 +149,8 @@ curl -X POST http://localhost:8000/analyze \
       "ring_id": "RING_001",
       "member_accounts": ["ACC_00123", "ACC_00456"],
       "pattern_type": "cycle",
-      "risk_score": 95.3
+      "risk_score": 95.3,
+      "member_count": 2
     }
   ],
   "summary": {
@@ -108,7 +158,8 @@ curl -X POST http://localhost:8000/analyze \
     "suspicious_accounts_flagged": 15,
     "fraud_rings_detected": 4,
     "processing_time_seconds": 2.3
-  }
+  },
+  "transactions": []
 }
 ```
 
@@ -118,10 +169,33 @@ curl -X POST http://localhost:8000/analyze \
 ```
 
 ### `GET /health`
-Returns `{"status": "ok"}` – used by load-balancers / Docker health checks.
+
+Health check endpoint for monitoring and load balancers.
+
+Returns:
+```json
+{
+  "status": "healthy",
+  "service": "Financial Forensics Engine",
+  "version": "1.0.0"
+}
+```
+
+### `POST /export/csv`
+
+Exports analysis results as CSV format for download.
+
+Request body: `AnalysisResponse` JSON object
+
+Returns: CSV file with suspicious accounts, fraud rings, and summary data.
 
 ### `GET /docs`
-Interactive Swagger UI playground.
+
+Interactive Swagger UI playground for API testing and exploration.
+
+### `GET /redoc`
+
+Alternative API documentation using ReDoc.
 
 ---
 
@@ -201,11 +275,22 @@ Clamped to [0, 100], rounded to 1 decimal place.
 ### Install
 
 ```bash
-cd backend
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
+
+### Environment Variables (optional)
+
+Create a `.env` file based on `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+Available variables:
+- `PORT` – Server port (default: 8000)
+- `ALLOWED_ORIGINS` – CORS allowed origins (default: *)
 
 ### Run (development)
 
@@ -217,6 +302,8 @@ Server is available at **http://localhost:8000**
 
 Interactive docs: **http://localhost:8000/docs**
 
+Alternative docs: **http://localhost:8000/redoc**
+
 ### Run (production)
 
 ```bash
@@ -225,14 +312,38 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
 
 ---
 
-## Docker
+## Docker & Deployment
+
+### Docker
+
+Build and run using Docker:
 
 ```bash
 # Build image
-docker build -t fraudai-backend .
+docker build -t fintrace-backend .
 
 # Run container
-docker run -p 8000:8000 fraudai-backend
+docker run -p 8000:8000 fintrace-backend
+```
+
+### Railway Deployment
+
+This project is configured for Railway deployment with:
+- `railway.toml` – Railway-specific configuration
+- `nixpacks.toml` – Build configuration
+- `Procfile` – Process definition
+- `runtime.txt` – Python version specification
+
+Deploy to Railway:
+```bash
+railway up
+```
+
+### Health Checks
+
+The `/health` endpoint returns service status for monitoring:
+```bash
+curl http://localhost:8000/health
 ```
 
 ---
@@ -262,27 +373,121 @@ TX005,ACC_E,ACC_A,1100.00,2025-01-02 08:30:00
   ],
   "fraud_rings": [
     {"ring_id": "RING_001", "member_accounts": ["ACC_A","ACC_B","ACC_C"],
-     "pattern_type": "cycle", "risk_score": 48.3}
+     "pattern_type": "cycle", "risk_score": 48.3, "member_count": 3}
   ],
   "summary": {
     "total_accounts_analyzed": 5,
     "suspicious_accounts_flagged": 3,
     "fraud_rings_detected": 1,
     "processing_time_seconds": 0.042
-  }
+  },
+  "transactions": []
 }
 ```
 
 ---
 
-## Environment Variables (optional overrides)
+## Configuration
 
-| Variable          | Default | Description                      |
-|-------------------|---------|----------------------------------|
-| `PORT`            | `8000`  | Uvicorn listen port              |
+All detection thresholds and scoring weights are centralized in `app/core/config.py`:
 
-All detection thresholds live in `app/core/config.py` and can be overridden
-without touching business logic.
+### Graph Construction
+- `MAX_CYCLE_LENGTH` = 5
+- `MIN_CYCLE_LENGTH` = 3
+
+### Smurfing Detection
+- `SMURFING_MIN_ENDPOINTS` = 10 (minimum unique counterparties)
+- `SMURFING_WINDOW_HOURS` = 72 (detection window)
+
+### Layered Shell Detection
+- `SHELL_MIN_HOPS` = 3 (minimum chain depth)
+- `SHELL_MAX_HOPS` = 5 (maximum search depth)
+- `SHELL_MAX_DEGREE` = 3 (max degree for shell nodes)
+
+### Velocity Burst
+- `VELOCITY_WINDOW_HOURS` = 24
+- `VELOCITY_MIN_TX` = 10 (minimum transactions to trigger)
+
+### Scoring Weights
+- `SCORE_CYCLE` = 40.0
+- `SCORE_SMURFING` = 30.0
+- `SCORE_VELOCITY` = 20.0
+- `SCORE_SHELL` = 25.0
+- `SCORE_CENTRALITY` = 10.0
+- `SCORE_FP_MERCHANT` = -25.0 (false-positive reduction)
+
+### Merchant Heuristics
+- `MERCHANT_MIN_LIFETIME_DAYS` = 30
+- `MERCHANT_AMOUNT_CV_THRESHOLD` = 0.3
+- `MERCHANT_SPACING_CV_THRESHOLD` = 0.5
+
+---
+
+## Dependencies
+
+Core libraries (see `requirements.txt`):
+- `fastapi>=0.111.0` – Web framework
+- `uvicorn[standard]>=0.29.0` – ASGI server
+- `networkx>=3.3` – Graph algorithms
+- `pandas>=2.2.0` – Data processing
+- `numpy>=1.26.0` – Numerical operations
+- `pydantic>=2.7.0` – Data validation
+- `python-multipart>=0.0.9` – File upload support
+- `openpyxl>=3.1.0` – Excel file support
+- `aiofiles>=23.2.1` – Async file operations
+
+---
+
+## Testing
+
+Test the API with the included sample data:
+
+```bash
+curl -X POST http://localhost:8000/analyze \
+     -F "file=@test_transactions.csv"
+```
+
+Validate output format:
+```bash
+python validate_output.py
+```
+
+---
+
+## Project Structure Details
+
+### Services Layer
+
+#### `csv_parser.py`
+- Multi-format file parsing (CSV, TSV, Excel)
+- Flexible column name mapping with aliases
+- Multiple timestamp format support
+- Data validation and type coercion
+- Automatic deduplication
+
+#### `graph_builder.py`
+- NetworkX DiGraph construction
+- Transaction aggregation on edges
+- Degree map computation
+- Efficient sparse graph representation
+
+#### `pattern_detector.py`
+- Cycle detection using Johnson's algorithm
+- Sliding window smurfing detection
+- DFS-based layered shell network detection
+- Unique ring ID generation
+
+#### `scoring_engine.py`
+- Weighted suspicion scoring model
+- Velocity burst detection
+- Degree centrality anomaly detection
+- Merchant false-positive reduction
+- Ring risk score computation
+
+#### `json_formatter.py`
+- Pydantic-based response assembly
+- Schema validation
+- JSON serialization
 
 ---
 
