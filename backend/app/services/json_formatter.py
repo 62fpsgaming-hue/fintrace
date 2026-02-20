@@ -2,7 +2,7 @@
 JSON Formatter Service
 ──────────────────────
 Converts raw engine outputs into Pydantic-validated AnalysisResponse objects
-that match the exact RIFT 2026 JSON schema.
+that match the exact Fintrace JSON schema.
 """
 
 from __future__ import annotations
@@ -10,8 +10,9 @@ from __future__ import annotations
 from typing import Any
 
 import networkx as nx
+import pandas as pd
 
-from app.models.schemas import AnalysisResponse, FraudRing, Summary, SuspiciousAccount
+from app.models.schemas import AnalysisResponse, FraudRing, Summary, SuspiciousAccount, Transaction
 
 
 def build_response(
@@ -21,6 +22,7 @@ def build_response(
     account_ring_map: dict[str, str],
     G: nx.DiGraph,
     processing_time: float,
+    df: pd.DataFrame | None = None,
 ) -> AnalysisResponse:
     """
     Assemble the final AnalysisResponse.
@@ -33,6 +35,7 @@ def build_response(
     account_ring_map  : account_id → first ring_id the account belongs to
     G                 : The full transaction DiGraph (to count total accounts)
     processing_time   : Wall-clock seconds for the full analysis pipeline
+    df                : Original transaction DataFrame (optional, for timeline data)
     """
 
     # ── Suspicious accounts (sorted descending by score) ─────────────────────
@@ -76,8 +79,24 @@ def build_response(
         processing_time_seconds=processing_time,
     )
 
+    # ── Transactions (for timeline visualization) ────────────────────────────
+    transactions: list[Transaction] = []
+    if df is not None:
+        # Include all transactions for timeline playback
+        for _, row in df.iterrows():
+            transactions.append(
+                Transaction(
+                    transaction_id=str(row.get("transaction_id", "")),
+                    sender_id=str(row.get("sender_id", "")),
+                    receiver_id=str(row.get("receiver_id", "")),
+                    amount=float(row.get("amount", 0.0)),
+                    timestamp=str(row.get("timestamp", "")),
+                )
+            )
+
     return AnalysisResponse(
         suspicious_accounts=suspicious_accounts,
         fraud_rings=fraud_rings,
         summary=summary,
+        transactions=transactions,
     )

@@ -1,11 +1,20 @@
 """
 Pydantic v2 response schemas for the Financial Forensics Engine.
-All field names and types match the RIFT 2026 required JSON output format exactly.
+All field names and types match the Fintrace required JSON output format exactly.
 """
 
 from __future__ import annotations
 from typing import List
 from pydantic import BaseModel, Field, field_validator
+
+
+class Transaction(BaseModel):
+    """Individual transaction record for timeline visualization."""
+    transaction_id: str
+    sender_id: str
+    receiver_id: str
+    amount: float
+    timestamp: str
 
 
 class SuspiciousAccount(BaseModel):
@@ -49,7 +58,8 @@ class Summary(BaseModel):
 
 
 class AnalysisResponse(BaseModel):
-    """Root response object – strict key compliance with RIFT 2026 format."""
+    """Root response object – strict key compliance with Fintrace format."""
     suspicious_accounts: List[SuspiciousAccount]
     fraud_rings: List[FraudRing]
     summary: Summary
+    transactions: List[Transaction] = []  # Optional: for timeline visualization

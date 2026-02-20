@@ -12,7 +12,7 @@ from app.api.routes import router
 # ── Application factory ───────────────────────────────────────────────────────
 
 app = FastAPI(
-    title="RIFT 2026 – Graph-Based Financial Forensics Engine",
+    title="Fintrace – Graph-Based Financial Forensics Engine",
     description=(
         "Money Muling Detection API using graph theory, temporal analysis, "
         "and intelligent suspicion scoring. "

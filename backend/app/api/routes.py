@@ -43,7 +43,7 @@ async def analyze_transactions(
     POST /analyze
     ─────────────
     Accepts a multipart/form-data file upload with field name ``file``.
-    Returns a JSON fraud report matching the RIFT 2026 exact schema.
+    Returns a JSON fraud report matching the Fintrace exact schema.
     """
     start_time = time.perf_counter()
 
@@ -83,6 +83,7 @@ async def analyze_transactions(
         account_ring_map=account_ring_map,
         G=G,
         processing_time=elapsed,
+        df=df,
     )
 
     return response

@@ -1,4 +1,4 @@
-# RIFT 2026 – Graph-Based Financial Forensics Engine
+# Fintrace – Graph-Based Financial Forensics Engine
 
 > **Money Muling Detection API**
 > A production-ready FastAPI backend that detects financial crime rings using
@@ -286,4 +286,4 @@ without touching business logic.
 
 ---
 
-*Built for RIFT 2026 Hackathon – Money Muling Detection Challenge*
+*Advanced Money Muling Detection Platform*
